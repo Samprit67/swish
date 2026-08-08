@@ -91,7 +91,7 @@ def true_talent(seasons: list[SeasonLine], p: Params) -> Talent:
     num = den = 0.0
     obs_num = obs_den = 0.0
 
-    for season, k in zip(recent, k_from_recent):
+    for season, k in zip(recent, k_from_recent, strict=True):
         idx = played.index(season)
         baseline = _trailing_baseline(obs_by_season[:idx], p)
         wv, ww, blended = observed_war(season, p)

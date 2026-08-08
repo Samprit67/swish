@@ -167,7 +167,7 @@ def surplus_to_pick(surplus: float, p: Params) -> PickEquivalent:
 
 
 def _pick_phrase(pick: float) -> str:
-    n = int(round(pick))
+    n = round(pick)
     if n <= 3:
         return f"a top-3 pick (~#{n})"
     if n <= 5:

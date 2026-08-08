@@ -69,9 +69,13 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["E501", "B905"]
+"swish/data/bref.py" = ["RUF001"]  # deliberately strips curly apostrophes from names
 
 [tool.mypy]
-python_version = "3.10"
+# Runtime supports 3.10+, but numpy's bundled stubs use 3.12 `type` syntax that
+# older targets can't parse. Check against 3.12 semantics; nothing in Swish
+# relies on 3.11/3.12-only language features.
+python_version = "3.12"
 packages = ["swish"]
 warn_redundant_casts = true
 warn_unused_ignores = true
@@ -82,7 +86,7 @@ disallow_incomplete_defs = true
 # more noise than signal under a strict config, so they run looser.
 
 [[tool.mypy.overrides]]
-module = ["uvicorn.*", "bs4.*"]
+module = ["uvicorn.*", "bs4.*", "numpy.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

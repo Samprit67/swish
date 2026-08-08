@@ -114,5 +114,5 @@ def simulate(
             YearBand(season_end=projections[t].season_end, war=_band(war_years[:, t]))
             for t in range(horizon)
         ),
-        histogram=tuple((float(c), float(d)) for c, d in zip(centers, counts)),
+        histogram=tuple((float(c), float(d)) for c, d in zip(centers, counts, strict=True)),
     )

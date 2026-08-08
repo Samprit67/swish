@@ -9,6 +9,7 @@ delivered inside HTML comments; :func:`_soup` splices those back in first.
 from __future__ import annotations
 
 import datetime as dt
+import itertools
 import re
 from collections.abc import Iterator
 
@@ -86,7 +87,7 @@ def _num(value: str | None) -> float:
 
 
 def _int(value: str | None) -> int:
-    return int(round(_num(value)))
+    return round(_num(value))
 
 
 def _money(value: str | None) -> int:
@@ -278,7 +279,7 @@ def parse_contract(html: str, *, from_season_end: int) -> list[ContractYear]:
 
     out: list[ContractYear] = []
     cells = data_row.find_all(["th", "td"])
-    for col, cell in zip(year_cols, cells):
+    for col, cell in zip(year_cols, cells, strict=False):
         year = _season_end(col)
         if year is None or year < from_season_end:
             continue
@@ -324,7 +325,7 @@ def likely_guaranteed(
         return years
 
     kept = [years[0]]
-    for prev, year in zip(years, years[1:]):
+    for prev, year in itertools.pairwise(years):
         if year.salary > 1.55 * prev.salary:
             break
         kept.append(year)
