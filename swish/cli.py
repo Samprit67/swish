@@ -1,8 +1,8 @@
 """``swish`` — the command line.
 
-    swish value "Luka Doncic"      # trade-value breakdown for one player
-    swish serve                    # start the web dashboard
-    swish version
+swish value "Luka Doncic"      # trade-value breakdown for one player
+swish serve                    # start the web dashboard
+swish version
 """
 
 from __future__ import annotations
