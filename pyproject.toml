@@ -1,0 +1,103 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "swish"
+version = "0.3.0"
+description = "Estimate an NBA player's trade value from his stats and contract, with a web dashboard."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Samprit Goswami" }]
+keywords = ["nba", "basketball", "analytics", "trade-value", "sports", "vorp"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Games/Entertainment",
+]
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "httpx>=0.27",
+    "beautifulsoup4>=4.12",
+    "lxml>=5.0",
+    "numpy>=1.24",
+    "typer>=0.12",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "hypothesis>=6.90",
+    "ruff>=0.6",
+    "mypy>=1.8",
+    "types-beautifulsoup4",
+]
+
+[project.scripts]
+swish = "swish.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/sgoswami/swish"
+Repository = "https://github.com/sgoswami/swish"
+Issues = "https://github.com/sgoswami/swish/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["swish"]
+artifacts = ["swish/web/**/*"]
+
+[tool.ruff]
+line-length = 108
+target-version = "py310"
+src = ["swish", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4", "SIM", "RUF", "PIE"]
+ignore = [
+    "B008",    # Typer/FastAPI put function calls in argument defaults on purpose
+    "RUF012",  # ClassVar noise on dataclass-ish containers
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501", "B905"]
+
+[tool.mypy]
+python_version = "3.10"
+packages = ["swish"]
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+disallow_incomplete_defs = true
+# The model core is checked strict. The layers that shuttle values in from
+# scraped HTML, Typer Option() defaults and FastAPI request plumbing produce
+# more noise than signal under a strict config, so they run looser.
+
+[[tool.mypy.overrides]]
+module = ["uvicorn.*", "bs4.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["swish.cli", "swish.api.*", "swish.data.*"]
+disallow_incomplete_defs = false
+disable_error_code = ["arg-type", "assignment", "no-untyped-def", "operator", "union-attr"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+
+[tool.coverage.run]
+branch = true
+source = ["swish"]
+omit = ["swish/__main__.py"]
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "raise NotImplementedError", "if TYPE_CHECKING:"]

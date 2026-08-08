@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.hypothesis/
+.coverage
+coverage.xml
+htmlcov/
+
+# Swish runtime data — everything fetched from Basketball-Reference lives in the
+# on-disk cache and is never committed. Only tests/fixtures/ is tracked.
+cache.db
+*.cache.db
+/scratch/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
