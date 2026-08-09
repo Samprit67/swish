@@ -8,6 +8,7 @@ a player the answer is instant and works with the network unplugged.
 from __future__ import annotations
 
 import sqlite3
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -36,41 +37,42 @@ class CachedPage:
 class Cache:
     def __init__(self, path: Path | str):
         self.path = str(path)
-        self._conn = sqlite3.connect(self.path)
+        # the API serves sync endpoints from a threadpool over one connection
+        self._conn = sqlite3.connect(self.path, check_same_thread=False)
+        self._lock = threading.Lock()
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.executescript(_SCHEMA)
         self._conn.commit()
 
     def get(self, url: str) -> CachedPage | None:
-        row = self._conn.execute(
-            "SELECT url, body, status, fetched_at FROM pages WHERE url = ?", (url,)
-        ).fetchone()
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT url, body, status, fetched_at FROM pages WHERE url = ?", (url,)
+            ).fetchone()
         return CachedPage(*row) if row else None
 
     def put(self, url: str, body: str, status: int = 200) -> None:
-        self._conn.execute(
-            "INSERT INTO pages(url, body, status, fetched_at) VALUES (?, ?, ?, ?) "
-            "ON CONFLICT(url) DO UPDATE SET body=excluded.body, status=excluded.status, "
-            "fetched_at=excluded.fetched_at",
-            (url, body, status, time.time()),
-        )
-        self._conn.commit()
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO pages(url, body, status, fetched_at) VALUES (?, ?, ?, ?) "
+                "ON CONFLICT(url) DO UPDATE SET body=excluded.body, status=excluded.status, "
+                "fetched_at=excluded.fetched_at",
+                (url, body, status, time.time()),
+            )
+            self._conn.commit()
 
     def stats(self) -> dict[str, object]:
-        n, total, oldest = self._conn.execute(
-            "SELECT COUNT(*), COALESCE(SUM(LENGTH(body)), 0), MIN(fetched_at) FROM pages"
-        ).fetchone()
-        return {
-            "pages": n,
-            "bytes": total,
-            "oldest": oldest,
-            "path": self.path,
-        }
+        with self._lock:
+            n, total, oldest = self._conn.execute(
+                "SELECT COUNT(*), COALESCE(SUM(LENGTH(body)), 0), MIN(fetched_at) FROM pages"
+            ).fetchone()
+        return {"pages": n, "bytes": total, "oldest": oldest, "path": self.path}
 
     def clear(self) -> int:
-        n = self._conn.execute("SELECT COUNT(*) FROM pages").fetchone()[0]
-        self._conn.execute("DELETE FROM pages")
-        self._conn.commit()
+        with self._lock:
+            n = self._conn.execute("SELECT COUNT(*) FROM pages").fetchone()[0]
+            self._conn.execute("DELETE FROM pages")
+            self._conn.commit()
         return n
 
     def close(self) -> None:

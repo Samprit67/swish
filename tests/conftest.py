@@ -72,3 +72,13 @@ def fixture_fetcher() -> FixtureFetcher:
 @pytest.fixture
 def repo(fixture_fetcher: FixtureFetcher) -> Repo:
     return Repo(fixture_fetcher)
+
+
+@pytest.fixture
+def client(repo: Repo):
+    from fastapi.testclient import TestClient
+    from swish.api import create_app
+
+    app = create_app(Settings(cache_path=":memory:"), repo=repo)
+    with TestClient(app) as c:
+        yield c
