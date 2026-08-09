@@ -268,11 +268,8 @@ def serve(
 def _render_valuation(v) -> None:
     from rich.panel import Panel
 
-    p10, p50, p90 = (
-        v.simulation.headline.p10,
-        v.simulation.headline.p50,
-        v.simulation.headline.p90,
-    )
+    p10 = v.simulation.headline.p10
+    p90 = v.simulation.headline.p90
     kind = "surplus over contract" if v.used_contract else "on-court production value"
     head = (
         f"[bold]{v.player.name}[/]  ·  {v.player.current_team or 'free agent'}\n"

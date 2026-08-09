@@ -70,6 +70,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["E501", "B905"]
 "swish/data/bref.py" = ["RUF001"]  # deliberately strips curly apostrophes from names
+"swish/cli.py" = ["RUF001"]        # en dashes are intentional in rendered output
 
 [tool.mypy]
 # Runtime supports 3.10+, but numpy's bundled stubs use 3.12 `type` syntax that

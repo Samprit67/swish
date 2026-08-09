@@ -30,7 +30,16 @@ class QuickValue:
     production_value: float
 
 
-def quick_value(pid, name, age, minutes, vorp, ws, usg, p: Params) -> QuickValue:
+def quick_value(
+    pid: str,
+    name: str,
+    age: int,
+    minutes: int,
+    vorp: float,
+    ws: float,
+    usg: float,
+    p: Params,
+) -> QuickValue:
     war_vorp = vorp * p.vorp_to_wins
     war_ws = ws - p.ws48_replacement * (minutes / 48.0)
     war = p.vorp_weight * war_vorp + (1.0 - p.vorp_weight) * war_ws
