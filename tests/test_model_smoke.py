@@ -19,8 +19,9 @@ PIDS = [
 ]
 
 
-@pytest.fixture
-def valuations(repo):
+@pytest.fixture(scope="module")
+def valuations(_session_repo):
+    repo = _session_repo
     ctx = repo.season_context(2026)
     return {pid: evaluate(repo.player_card(repo.resolve(pid)), ctx) for pid in PIDS}
 

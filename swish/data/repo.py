@@ -81,20 +81,21 @@ class Repo:
         if isinstance(ref, str):
             ref = self.resolve(ref)
         html = self.fetch.get(ref.url_path, max_age=MAX_AGE_PLAYER)
+        soup = parse.soup(html)  # parse the ~1 MB page once, reuse for every table
         upcoming = bref.upcoming_season_end()
-        bio = parse.parse_bio(html, ref.pid)
+        bio = parse.parse_bio(soup, ref.pid)
         if ref.name and not bref.looks_like_pid(ref.name):
             bio = _with_name(bio, ref.name)
-        salary_history = parse.parse_salary_history(html)
+        salary_history = parse.parse_salary_history(soup)
         contract = parse.likely_guaranteed(
-            parse.parse_contract(html, from_season_end=upcoming),
+            parse.parse_contract(soup, from_season_end=upcoming),
             bio=bio,
             salary_history=salary_history,
             from_season_end=upcoming,
         )
         return PlayerCard(
             bio=bio,
-            seasons=tuple(parse.parse_seasons(html)),
+            seasons=tuple(parse.parse_seasons(soup)),
             contract=tuple(contract),
             salary_history=tuple(salary_history),
         )

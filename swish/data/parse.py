@@ -51,13 +51,24 @@ _MONTHS = {
 # --------------------------------------------------------------------------
 
 
-def _soup(html: str) -> BeautifulSoup:
-    soup = BeautifulSoup(html, "lxml")
-    for comment in soup.find_all(string=lambda t: isinstance(t, Comment)):
+def _soup(html: str | BeautifulSoup) -> BeautifulSoup:
+    """Parse HTML, splicing Basketball-Reference's comment-wrapped tables back in.
+
+    Accepts an already-parsed soup and returns it untouched, so callers that need
+    several tables off one page can parse once and pass the soup around.
+    """
+    if isinstance(html, BeautifulSoup):
+        return html
+    doc = BeautifulSoup(html, "lxml")
+    for comment in doc.find_all(string=lambda t: isinstance(t, Comment)):
         if "<table" in comment:
             fragment = BeautifulSoup(str(comment), "lxml")
             comment.replace_with(fragment)
-    return soup
+    return doc
+
+
+#: public alias — parse a page once, then hand the soup to several parse_* calls
+soup = _soup
 
 
 def _rows(table: Tag) -> Iterator[dict[str, str]]:

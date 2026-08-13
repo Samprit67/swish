@@ -98,6 +98,10 @@ disable_error_code = ["arg-type", "assignment", "no-untyped-def", "operator", "u
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"
+filterwarnings = [
+    "error::DeprecationWarning:swish.*",
+    "ignore::DeprecationWarning:starlette.*",
+]
 
 [tool.coverage.run]
 branch = true
