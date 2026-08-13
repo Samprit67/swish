@@ -100,7 +100,7 @@ testpaths = ["tests"]
 addopts = "-q --strict-markers"
 filterwarnings = [
     "error::DeprecationWarning:swish.*",
-    "ignore::DeprecationWarning:starlette.*",
+    "ignore:Using `httpx` with `starlette.testclient`:DeprecationWarning",
 ]
 
 [tool.coverage.run]
