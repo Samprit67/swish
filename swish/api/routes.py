@@ -9,7 +9,7 @@ from fastapi import APIRouter, Body, Depends, Query
 from swish import __version__
 from swish.api.deps import get_repo
 from swish.api.params import build_params
-from swish.api.present import card_dict, ref_dict, valuation_dict
+from swish.api.present import card_dict, career_series, ref_dict, valuation_dict
 from swish.data.bref import current_season_end, upcoming_season_end
 from swish.data.repo import Repo
 from swish.errors import SwishError
@@ -75,7 +75,9 @@ def player_value(
     card = repo.player_card(repo.resolve(ident))
     ctx = repo.season_context(season or current_season_end())
     v = evaluate(card, ctx, params, use_contract=use_contract)
-    return valuation_dict(v, full=True)
+    out = valuation_dict(v, full=True)
+    out["career"] = career_series(card, v.params)
+    return out
 
 
 # -- compare ----------------------------------------------------------

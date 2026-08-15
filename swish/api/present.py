@@ -13,6 +13,7 @@ from typing import Any
 from swish.data.schema import PlayerCard, PlayerRef
 from swish.model import Params
 from swish.model.pipeline import Valuation
+from swish.model.production import observed_war
 
 
 def params_dict(p: Params) -> dict[str, Any]:
@@ -170,3 +171,25 @@ def valuation_dict(v: Valuation, *, full: bool = True) -> dict[str, Any]:
 
 def _band(b: Any) -> dict[str, float]:
     return {"p10": b.p10, "p50": b.p50, "p90": b.p90, "mean": b.mean}
+
+
+def career_series(card: PlayerCard, p: Params) -> list[dict[str, Any]]:
+    """Full-career WAR and headline box stats, for the trajectory chart."""
+    out = []
+    for s in card.seasons:
+        out.append(
+            {
+                "season_end": s.season_end,
+                "label": s.label,
+                "age": s.age,
+                "minutes": s.minutes,
+                "games": s.games,
+                "war": observed_war(s, p)[2],
+                "vorp": s.vorp,
+                "ws": s.ws,
+                "pts": s.pts,
+                "ast": s.ast,
+                "trb": s.trb,
+            }
+        )
+    return out
