@@ -66,14 +66,18 @@ class FixtureFetcher(Fetcher):
 
 @pytest.fixture
 def fixture_fetcher() -> FixtureFetcher:
-    return FixtureFetcher()
+    f = FixtureFetcher()
+    yield f
+    f.cache.close()
 
 
 @pytest.fixture(scope="session")
-def _session_repo() -> Repo:
+def _session_repo():
     # HTML parsing (esp. the 700-row season tables) is the expensive bit; parse
     # once and share the Repo's in-memory caches across the read-only tests.
-    return Repo(FixtureFetcher())
+    fetcher = FixtureFetcher()
+    yield Repo(fetcher)
+    fetcher.cache.close()
 
 
 @pytest.fixture
