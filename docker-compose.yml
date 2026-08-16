@@ -1,0 +1,12 @@
+services:
+  swish:
+    build: .
+    image: swish:latest
+    ports:
+      - "8770:8770"
+    volumes:
+      - swish-cache:/data
+    restart: unless-stopped
+
+volumes:
+  swish-cache:

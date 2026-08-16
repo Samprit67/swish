@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: ruff check swish tests
+      - run: ruff format --check swish tests
+      - run: mypy swish
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev]"
+      - run: pytest --cov=swish --cov-report=term-missing --cov-report=xml
+      - if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t swish:ci .
+      - name: smoke test the image
+        run: |
+          docker run --rm swish:ci version
+          docker run --rm -d --name swish-ci -p 8770:8770 swish:ci serve --host 0.0.0.0 --no-open
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:8770/api/health && break || sleep 1
+          done
+          curl -sf http://localhost:8770/api/health
+          docker rm -f swish-ci

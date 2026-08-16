@@ -45,7 +45,8 @@ def _repo() -> Repo:
 
 
 def _m(value: float) -> str:
-    return f"${value / 1_000_000:,.1f}M"
+    sign = "-" if value < 0 else ""
+    return f"{sign}${abs(value) / 1_000_000:,.1f}M"
 
 
 def _fail(exc: Exception) -> None:
