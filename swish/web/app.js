@@ -325,7 +325,7 @@ async function renderCompare(idsRaw) {
   players.forEach((p) => {
     tb.append(h("tr", {},
       h("td", {}, p.player.name),
-      h("td", {}, p.projection[0].age),
+      h("td", {}, p.projection[0].age - 1),
       h("td", {}, F.war(p.talent.war)),
       h("td", { class: p.swish_value >= 0 ? "pos" : "neg" }, F.millions(p.swish_value)),
       h("td", { class: "muted" }, `${F.millions(p.band.p10)} – ${F.millions(p.band.p90)}`),

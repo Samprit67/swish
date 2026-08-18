@@ -92,6 +92,15 @@ def evaluate(
         pcts = player_percentiles(last, context)
 
     notes = _notes(card, talent, contract, p, use_contract, effective_contract)
+    if effective_contract and breakdown.surplus_value < 0 and talent.war > 5.0:
+        annual = breakdown.salary_value / max(1, len(breakdown.years))
+        notes.insert(
+            0,
+            f"This is a surplus figure. {card.bio.name} is a good player — his projected "
+            f"production is worth {breakdown.production_value / 1e6:.0f}M over the horizon — "
+            f"but his salary (~{annual / 1e6:.0f}M/yr) exceeds that. Turn off 'subtract "
+            "salary' for on-court value alone.",
+        )
 
     return Valuation(
         player=card.bio,

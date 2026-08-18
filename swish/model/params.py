@@ -98,8 +98,8 @@ class Params:
     #: a title). Marginal $/win rises linearly for production above an average
     #: starter, capped. baseline in WAR, slope per WAR, and the ceiling multiple.
     star_premium_baseline: float = 2.0
-    star_premium_slope: float = 0.12
-    star_premium_cap: float = 2.7
+    star_premium_slope: float = 0.13
+    star_premium_cap: float = 2.8
     #: annual salary-cap growth used to inflate future $/win and cap holds
     cap_growth: float = 0.07
     #: a win this season is worth more to a team than a win in three years
