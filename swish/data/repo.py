@@ -10,6 +10,9 @@ questions:
 
 from __future__ import annotations
 
+import contextlib
+from concurrent.futures import ThreadPoolExecutor
+
 from swish.data import bref, parse
 from swish.data.fetch import (
     MAX_AGE_INDEX,
@@ -18,7 +21,7 @@ from swish.data.fetch import (
     Fetcher,
 )
 from swish.data.schema import PlayerCard, PlayerRef, SeasonContext
-from swish.errors import PlayerNotFound
+from swish.errors import PlayerNotFound, SwishError
 
 
 class Repo:
@@ -105,11 +108,27 @@ class Repo:
     def season_context(self, season_end: int) -> SeasonContext:
         if season_end in self._context_cache:
             return self._context_cache[season_end]
-        adv = self.fetch.get(bref.season_advanced_url(season_end), max_age=MAX_AGE_SEASON)
-        pg = self.fetch.get(bref.season_per_game_url(season_end), max_age=MAX_AGE_SEASON)
+        # the two leaderboard pages are independent — fetch them together so a
+        # cold context costs one wait, not two
+        urls = [bref.season_advanced_url(season_end), bref.season_per_game_url(season_end)]
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            adv, pg = pool.map(lambda u: self.fetch.get(u, max_age=MAX_AGE_SEASON), urls)
         ctx = parse.parse_season_context(adv, pg, season_end)
         self._context_cache[season_end] = ctx
         return ctx
+
+    def headshot(self, ref: PlayerRef | str) -> bytes | None:
+        pid = ref if isinstance(ref, str) else ref.pid
+        return self.fetch.get_image(f"/req/202106291/images/headshots/{pid}.jpg", max_age=MAX_AGE_INDEX)
+
+    def prewarm(self, season_end: int | None = None) -> None:
+        """Best-effort: pull the current season's context into the cache.
+
+        Called in a background thread on server start so the first user lookup
+        only has to fetch the player's own page.
+        """
+        with contextlib.suppress(SwishError):
+            self.season_context(season_end or bref.current_season_end())
 
     # -- internals --------------------------------------------------
 

@@ -2,7 +2,9 @@
 
 Rules it follows so Basketball-Reference keeps letting us in:
 
-* never more than one request every ``settings.min_interval`` seconds,
+* a **token bucket** — a short burst is allowed (so one cold player lookup fires
+  its 3-4 requests back to back) but the sustained rate stays at one request
+  every ``settings.min_interval`` seconds,
 * honour ``Retry-After`` on 429s,
 * back off exponentially on 5xx,
 * and once a page is cached, never ask for it again until it goes stale.
@@ -12,6 +14,8 @@ Rules it follows so Basketball-Reference keeps letting us in:
 
 from __future__ import annotations
 
+import base64
+import threading
 import time
 
 import httpx
@@ -34,7 +38,9 @@ class Fetcher:
     def __init__(self, cache: Cache, settings: Settings | None = None):
         self.cache = cache
         self.settings = settings or Settings()
-        self._last_request_at = 0.0
+        self._lock = threading.Lock()
+        self._tokens = float(self.settings.burst)
+        self._refilled_at = time.monotonic()
 
     # -- public ------------------------------------------------------------
 
@@ -60,6 +66,37 @@ class Fetcher:
             raise
         self.cache.put(url, body, 200)
         return body
+
+    def get_image(self, path: str, *, max_age: float) -> bytes | None:
+        """Fetch a (cached) image; ``None`` if it doesn't exist or can't be reached.
+
+        Stored base64 in the same cache; a miss is remembered as a 404 so we
+        don't re-ask for a headshot the player doesn't have.
+        """
+        url = path if path.startswith("http") else BASE_URL + path
+        key = "img:" + url
+        cached = self.cache.get(key)
+        if cached is not None and cached.age() <= max_age:
+            return base64.b64decode(cached.body) if cached.status == 200 and cached.body else None
+        if self.settings.offline:
+            if cached is not None and cached.status == 200 and cached.body:
+                return base64.b64decode(cached.body)
+            return None
+        try:
+            self._throttle()
+            resp = httpx.get(
+                url,
+                headers={"User-Agent": self.settings.user_agent},
+                timeout=15.0,
+                follow_redirects=True,
+            )
+        except httpx.HTTPError:
+            return None
+        if resp.status_code == 200 and resp.headers.get("content-type", "").startswith("image"):
+            self.cache.put(key, base64.b64encode(resp.content).decode(), 200)
+            return resp.content
+        self.cache.put(key, "", 404)
+        return None
 
     # -- network seam ----------------------------------------------------
 
@@ -101,10 +138,24 @@ class Fetcher:
     # -- internals -----------------------------------------------------
 
     def _throttle(self) -> None:
-        gap = time.monotonic() - self._last_request_at
-        if gap < self.settings.min_interval:
-            time.sleep(self.settings.min_interval - gap)
-        self._last_request_at = time.monotonic()
+        """Token bucket: burst up to ``settings.burst``, refill 1 per interval."""
+        interval = self.settings.min_interval
+        if interval <= 0:
+            return
+        with self._lock:
+            now = time.monotonic()
+            self._tokens = min(
+                float(self.settings.burst),
+                self._tokens + (now - self._refilled_at) / interval,
+            )
+            self._refilled_at = now
+            if self._tokens < 1.0:
+                wait = (1.0 - self._tokens) * interval
+                time.sleep(wait)
+                self._tokens = 0.0
+                self._refilled_at = time.monotonic()
+            else:
+                self._tokens -= 1.0
 
 
 def _retry_after(resp: httpx.Response) -> float | None:

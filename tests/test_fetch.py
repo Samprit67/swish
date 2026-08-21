@@ -88,6 +88,17 @@ def test_404_is_a_clean_error(tmp_path, monkeypatch):
         f.get("/missing.html", max_age=MAX_AGE_SEASON)
 
 
+def test_token_bucket_allows_a_burst_then_throttles(monkeypatch, tmp_path):
+    slept: list[float] = []
+    monkeypatch.setattr("time.sleep", lambda s: slept.append(s))
+    f = Fetcher(Cache(tmp_path / "c.db"), Settings(min_interval=3.0, burst=3))
+    for _ in range(3):
+        f._throttle()  # burst — no sleeping
+    assert slept == []
+    f._throttle()  # bucket empty now
+    assert slept and slept[-1] > 0
+
+
 def test_settings_from_env(monkeypatch):
     monkeypatch.setenv("SWISH_PORT", "9999")
     monkeypatch.setenv("SWISH_OFFLINE", "1")

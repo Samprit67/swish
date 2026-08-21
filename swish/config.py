@@ -16,9 +16,9 @@ from pathlib import Path
 APP_NAME = "swish"
 
 # Basketball-Reference asks crawlers to stay under 20 requests/minute and will
-# hand out a one-hour block for ignoring it. One request every 3.5s keeps us
-# comfortably inside that with margin for retries.
-DEFAULT_MIN_INTERVAL = 3.5
+# hand out a one-hour block for ignoring it. A sustained 3s gap (with a small
+# burst allowance) keeps us comfortably inside that with margin for retries.
+DEFAULT_MIN_INTERVAL = 3.0
 
 
 def data_home() -> Path:
@@ -42,8 +42,10 @@ class Settings:
     cache_path: Path = field(default_factory=default_cache_path)
     host: str = "127.0.0.1"
     port: int = 8770
-    #: seconds between outbound requests to Basketball-Reference
+    #: sustained seconds between outbound requests to Basketball-Reference
     min_interval: float = DEFAULT_MIN_INTERVAL
+    #: how many requests may fire back-to-back before the sustained rate kicks in
+    burst: int = 4
     #: allow the network at all; when False only the cache is consulted
     offline: bool = False
     user_agent: str = "swish/0.3 (personal trade-value tool; +https://github.com/sgoswami/swish)"
@@ -69,6 +71,8 @@ def settings_from_env() -> Settings:
         s.port = int(port)
     if interval := os.environ.get("SWISH_MIN_INTERVAL"):
         s.min_interval = float(interval)
+    if burst := os.environ.get("SWISH_BURST"):
+        s.burst = int(burst)
     if os.environ.get("SWISH_OFFLINE"):
         s.offline = True
     return s

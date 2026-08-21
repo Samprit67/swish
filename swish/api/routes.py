@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, Query
+from fastapi.responses import Response
 
 from swish import __version__
 from swish.api.deps import get_repo
@@ -56,6 +57,18 @@ def search(repo: RepoDep, q: str = Query(min_length=2)) -> dict:
 @router.get("/players/{ident}")
 def player(repo: RepoDep, ident: str) -> dict:
     return card_dict(repo.player_card(repo.resolve(ident)))
+
+
+@router.get("/players/{ident}/headshot")
+def headshot(repo: RepoDep, ident: str) -> Response:
+    img = repo.headshot(repo.resolve(ident))
+    if img is None:
+        return Response(status_code=404)
+    return Response(
+        content=img,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "public, max-age=604800"},
+    )
 
 
 @router.get("/players/{ident}/value")

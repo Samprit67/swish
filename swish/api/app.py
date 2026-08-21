@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -30,11 +31,17 @@ def create_app(settings: Settings | None = None, repo: Repo | None = None) -> Fa
         openapi_url="/api/openapi.json",
     )
 
+    owns_repo = repo is None
     if repo is None:
         cache = Cache(settings.cache_url)
         repo = Repo(Fetcher(cache, settings))
     app.state.settings = settings
     app.state.repo = repo
+
+    if owns_repo and not settings.offline:
+        # warm the current-season leaderboard in the background so the first
+        # player lookup only has to fetch that player's own page
+        threading.Thread(target=repo.prewarm, daemon=True).start()
 
     from swish.api.routes import router
 

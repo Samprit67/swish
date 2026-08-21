@@ -63,6 +63,9 @@ class FixtureFetcher(Fetcher):
         self.downloads.append(path)
         return load_fixture(_ROUTES[path])
 
+    def get_image(self, path: str, *, max_age: float) -> bytes | None:
+        return None  # no headshot fixtures — the UI falls back to initials
+
 
 @pytest.fixture
 def fixture_fetcher() -> FixtureFetcher:
