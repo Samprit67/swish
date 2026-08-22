@@ -80,4 +80,7 @@ charts written by hand in [`charts.js`](../swish/web/charts.js).
    Monte Carlo.
 5. `present.valuation_dict` → JSON.
 
-Cold: 3 network requests, ~10s. Warm: no network, ~50ms.
+The server warms step 3 in a background thread on startup, and a token-bucket
+throttle (burst of 4, then one request per 3s sustained) lets a cold lookup
+fire its remaining requests without waiting. So in practice: **cold ≈ 1–2s**
+(just the player page), **warm ≈ 50ms** (no network at all).

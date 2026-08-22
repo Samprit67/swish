@@ -20,12 +20,14 @@ an HTML comment — [`parse.py`](../swish/data/parse.py) splices those back in).
 
 [`fetch.py`](../swish/data/fetch.py):
 
-- **≥ 3.5 seconds between requests** (`SWISH_MIN_INTERVAL` to change), well under
+- A **token bucket**: a short burst is allowed (so one cold player lookup fires
+  its 3-4 requests back to back) but the sustained rate holds at one request
+  every 3 seconds (`SWISH_MIN_INTERVAL` / `SWISH_BURST` to change) — well under
   the ~20/minute Sports Reference asks crawlers to stay below.
 - A descriptive `User-Agent` that identifies the tool.
 - Honours `Retry-After` on 429s; exponential backoff on 5xx.
 - Every response cached in SQLite, so re-runs make **zero** requests. A cold
-  single-player lookup is 3 requests; everything after is served from disk.
+  single-player lookup is 3-4 requests; everything after is served from disk.
 
 Analysing one player and browsing his dashboard is a handful of requests. The
 leaderboard is 2. This is well within reasonable personal use — but it is

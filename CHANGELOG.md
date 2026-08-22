@@ -3,6 +3,23 @@
 All notable changes to Swish. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.4.0] — 2026-08-31
+
+### Added
+- Player **headshots** in the hero (proxied from Basketball-Reference, cached,
+  initials fallback).
+- Skill-percentile **radar chart** on the compare view.
+- Chart interactions: draw-in animation, hover crosshair with a readout.
+- Skeleton loading states; optimistic player header from the search result.
+
+### Changed
+- Cold player lookup is now **~1s** instead of ~10s: a token-bucket throttle
+  (burst of 4, then 3s sustained), the current-season leaderboard is warmed in
+  a background thread on startup, and the two season pages are fetched
+  concurrently.
+- Redesigned the whole dashboard — spacing, type, colour, dark mode, the
+  value waterfall now interleaves production and salary per season.
+
 ## [0.3.0] — 2026-08-31
 
 ### Added

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "swish"
-version = "0.3.0"
+version = "0.4.0"
 description = "Estimate an NBA player's trade value from his stats and contract, with a web dashboard."
 readme = "README.md"
 requires-python = ">=3.10"

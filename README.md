@@ -46,7 +46,7 @@ being wrong or being early is left to the reader.
 |---|---|
 | **Any player** | Resolves a name (accents, typos, `"gilgeous alexander"`, or a raw B-Ref id) against the full player index and fetches him live. |
 | **A trade-value number** | Projected wins × the market price of a win, discounted and cap-inflated, minus guaranteed salary → *surplus value*, expressed as `≈ the #7 pick`. |
-| **The whole chain, shown** | Career WAR trajectory, the aging projection with a p10–p90 fan, a waterfall from production value to salary to surplus, league percentile bars — every intermediate number the model computed. |
+| **The whole chain, shown** | Career WAR trajectory, the aging projection with a p10–p90 fan, a waterfall from production value to salary to surplus, league percentile bars, a skill radar on compare — every intermediate number the model computed. |
 | **Uncertainty** | A ~5,000-run Monte Carlo over talent, aging, health and $/win gives a 10th–90th percentile range, not just a point estimate. |
 | **Live analytics** | Sliders for horizon, discount rate and $/win; toggles for the metric (VORP / Win Shares / blend) and whether to subtract salary. Everything recomputes. |
 | **Compare** | Two to four players side by side — value bars and skill percentiles. |
@@ -75,8 +75,10 @@ swish trade --a "Zion Williamson" --b "Jaylen Brown"
 swish serve
 ```
 
-The first lookup of a player makes ~3 requests to basketball-reference.com
-(~10s); after that it's served from the cache at
+The first lookup of a player makes one or two requests to
+basketball-reference.com (~1–2s — the server warms the league context in the
+background on startup, and a token-bucket throttle lets a cold lookup burst).
+After that it's served from the cache at
 `~/Library/Application Support/swish/cache.db` (macOS) or `$XDG_DATA_HOME/swish`
 (Linux). `swish cache info` shows what's stored; `swish cache clear` empties it.
 
