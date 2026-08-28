@@ -71,42 +71,61 @@ function headshot(pid, name) {
   return box;
 }
 
-// ------------------------------------------------------------------ search
-function initSearch() {
-  const box = $("#search-input");
-  const panel = $("#search-results");
-  let timer, active = -1, rows = [];
-  const close = () => { panel.hidden = true; active = -1; };
-  box.addEventListener("input", () => {
+// ------------------------------------------------------------------ typeahead
+// Attaches a player-search dropdown to any <input> whose parent form/box is
+// position:relative. onPick(ref) fires when the user chooses a player.
+function typeahead(input, onPick, { min = 2, clearOnPick = true } = {}) {
+  const host = input.closest("form") || input.parentElement;
+  host.classList.add("ta-host");
+  const menu = h("div", { class: "ta-menu" });
+  menu.hidden = true;
+  host.append(menu);
+  let timer, rows = [], active = -1, seq = 0;
+  input.setAttribute("autocomplete", "off");
+  const close = () => { menu.hidden = true; active = -1; };
+  const paint = () => {
+    clear(menu);
+    rows.forEach((r, i) => menu.append(h("button", {
+      type: "button", class: i === active ? "active" : "",
+      onmousedown: (e) => { e.preventDefault(); choose(r); },
+    }, h("span", { class: "sr-name" }, r.name),
+       h("span", { class: "sr-meta" }, `${r.position || "—"} · ${r.from_year}–${r.to_year}`))));
+    menu.hidden = rows.length === 0;
+    const cur = menu.querySelector(".active");
+    if (cur) cur.scrollIntoView({ block: "nearest" });
+  };
+  const choose = (r) => { if (!r) return; if (clearOnPick) input.value = ""; close(); onPick(r); };
+  input.addEventListener("input", () => {
     clearTimeout(timer);
-    const q = box.value.trim();
-    if (q.length < 2) return close();
+    const q = input.value.trim();
+    if (q.length < min) return close();
+    const my = ++seq;
     timer = setTimeout(async () => {
       try {
-        rows = (await api.get("/players/search", { q })).results;
-        if (!rows.length) return close();
-        clear(panel);
-        rows.forEach((r) =>
-          panel.append(h("button", { type: "button", onclick: () => pick(r) },
-            h("span", { class: "sr-name" }, r.name),
-            h("span", { class: "sr-meta" }, `${r.position || "—"} · ${r.from_year}–${r.to_year}`))));
-        panel.hidden = false; active = -1;
+        const res = (await api.get("/players/search", { q })).results;
+        if (my !== seq) return;
+        rows = res; active = -1; paint();
       } catch { close(); }
-    }, 160);
+    }, 150);
   });
-  box.addEventListener("keydown", (e) => {
-    if (panel.hidden) return;
-    const btns = [...panel.querySelectorAll("button")];
-    if (e.key === "ArrowDown") { active = Math.min(active + 1, btns.length - 1); e.preventDefault(); }
-    else if (e.key === "ArrowUp") { active = Math.max(active - 1, 0); e.preventDefault(); }
-    else if (e.key === "Enter") { e.preventDefault(); return pick(rows[active] || rows[0]); }
-    else if (e.key === "Escape") return close();
-    btns.forEach((b, i) => b.classList.toggle("active", i === active));
-    if (btns[active]) btns[active].scrollIntoView({ block: "nearest" });
+  input.addEventListener("keydown", (e) => {
+    if (menu.hidden) return;
+    if (e.key === "ArrowDown") { active = Math.min(active + 1, rows.length - 1); e.preventDefault(); paint(); }
+    else if (e.key === "ArrowUp") { active = Math.max(active - 1, 0); e.preventDefault(); paint(); }
+    else if (e.key === "Enter") { e.preventDefault(); choose(rows[active] || rows[0]); }
+    else if (e.key === "Escape") { e.preventDefault(); close(); }
   });
-  $("#search").addEventListener("submit", (e) => { e.preventDefault(); if (rows[0]) pick(rows[Math.max(0, active)]); });
-  document.addEventListener("click", (e) => { if (!$("#search").contains(e.target)) close(); });
-  function pick(r) { if (!r) return; box.value = ""; close(); location.hash = `#/player/${r.pid}`; }
+  input.addEventListener("blur", () => setTimeout(close, 150));
+}
+
+function initSearch() {
+  const box = $("#search-input");
+  typeahead(box, (r) => (location.hash = `#/player/${r.pid}`));
+  $("#search").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const q = box.value.trim();
+    if (q) { box.value = ""; location.hash = `#/player/${encodeURIComponent(q)}`; }
+  });
 }
 
 // ------------------------------------------------------------------ controls
@@ -261,9 +280,12 @@ async function renderCompare(idsRaw) {
   const v = view();
   clear(v);
   v.append(h("h2", { class: "section-title" }, "Compare"));
-  v.append(h("form", { class: "search", style: "max-width:320px;margin:8px 0 20px",
-    onsubmit: (e) => { e.preventDefault(); const q = e.target.q.value.trim(); if (q) location.hash = `#/compare?ids=${[...ids, q].join(",")}`; } },
-    h("input", { name: "q", type: "search", placeholder: "add a player…" })));
+  const addInput = h("input", { name: "q", type: "search", placeholder: "add a player…" });
+  const add = (name) => (location.hash = `#/compare?ids=${[...ids, name].join(",")}`);
+  const adder = h("form", { class: "search", style: "max-width:320px;margin:8px 0 20px",
+    onsubmit: (e) => { e.preventDefault(); const q = addInput.value.trim(); if (q) add(q); } }, addInput);
+  v.append(adder);
+  typeahead(addInput, (r) => add(r.name));
   if (ids.length < 2) { v.append(h("p", { class: "muted" }, "Add at least two players.")); return; }
 
   v.append(h("div", { class: "sk sk-wide" }));
@@ -316,10 +338,13 @@ function renderTrade() {
   recomputeTrade();
 
   function sideBox(key, lbl) {
-    return h("div", { class: "side", "data-side": key }, h("h4", {}, lbl),
-      h("div", { class: "basket" }),
-      h("form", { onsubmit: (e) => { e.preventDefault(); const q = e.target.q.value.trim(); if (q) { tradeState[key].push(q); paintBaskets(); recomputeTrade(); e.target.reset(); } } },
-        h("input", { name: "q", type: "search", placeholder: "add player…" })));
+    const input = h("input", { name: "q", type: "search", placeholder: "add player…" });
+    const addOne = (name) => { tradeState[key].push(name); paintBaskets(); recomputeTrade(); };
+    const form = h("form", {
+      onsubmit: (e) => { e.preventDefault(); const q = input.value.trim(); if (q) { input.value = ""; addOne(q); } },
+    }, input);
+    typeahead(input, (r) => addOne(r.name));
+    return h("div", { class: "side", "data-side": key }, h("h4", {}, lbl), h("div", { class: "basket" }), form);
   }
 }
 function paintBaskets() {

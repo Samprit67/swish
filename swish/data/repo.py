@@ -43,39 +43,52 @@ class Repo:
                 to_year=bref.current_season_end(),
             )
 
-        letters = bref.index_letters_for(query) or ["a"]
+        # fast path: last-name queries ("jokic", "Nikola Jokic") resolve straight
+        # off the letter-index page
         pool: list[PlayerRef] = []
-        seen: set[str] = set()
         best: PlayerRef | None = None
         best_score = 0.0
-        suggestions: list[str] = []
-        for letter in letters:
-            for ref in self._letter_index(letter):
-                if ref.pid not in seen:
-                    seen.add(ref.pid)
-                    pool.append(ref)
-            cand, score, sugg = bref.match_player(query, pool)
+        for letter in bref.index_letters_for(query):
+            pool.extend(self._letter_index(letter))
+            cand, score, _ = bref.match_player(query, pool)
             if score > best_score:
-                best, best_score, suggestions = cand, score, sugg
+                best, best_score = cand, score
             if best is not None and best_score >= bref.CONFIDENT:
-                return best  # no need to look at the other letters
+                return best
         if best is not None:
             return best
-        raise PlayerNotFound(query, suggestions=suggestions)
+
+        # first names, nicknames, partials and typos go through B-Ref's search
+        hits = self.search(query, limit=6)
+        if not hits:
+            raise PlayerNotFound(query, suggestions=[])
+        want = bref.normalize(query)
+        exact = next((h for h in hits if bref.normalize(h.name) == want), None)
+        if exact is not None:
+            return exact
+        best = hits[0]
+        if want in bref.normalize(best.name) or bref.score_match(query, best) >= 0.5:
+            return best
+        raise PlayerNotFound(query, suggestions=[h.name for h in hits[:5]])
 
     def search(self, query: str, limit: int = 8) -> list[PlayerRef]:
+        query = query.strip()
+        if not query:
+            return []
+        if bref.looks_like_pid(query):
+            return [
+                PlayerRef(
+                    pid=query,
+                    name=query,
+                    url_path=bref.player_url(query),
+                    from_year=0,
+                    to_year=bref.current_season_end(),
+                )
+            ]
+        html = self.fetch.get(bref.search_url(query), max_age=MAX_AGE_SEASON)
+        hits = parse.parse_search(html)
         want = bref.normalize(query)
-        pool: list[PlayerRef] = []
-        seen: set[str] = set()
-        for letter in bref.index_letters_for(query) or ["a"]:
-            for ref in self._letter_index(letter):
-                if ref.pid not in seen:
-                    seen.add(ref.pid)
-                    pool.append(ref)
-            if any(want in bref.normalize(r.name) for r in pool):
-                break
-        hits = [r for r in pool if want in bref.normalize(r.name)]
-        hits.sort(key=lambda r: (want != bref.normalize(r.name), -r.to_year, r.name))
+        hits.sort(key=lambda r: (want not in bref.normalize(r.name), -r.to_year))
         return hits[:limit]
 
     # -- player --------------------------------------------------------

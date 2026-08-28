@@ -34,10 +34,15 @@ def test_typo_still_resolves(repo: Repo):
     assert repo.resolve("Luka Doncicc").pid == "doncilu01"
 
 
-def test_unknown_player_raises_with_suggestions(repo: Repo):
-    with pytest.raises(PlayerNotFound) as exc:
+def test_first_name_resolves_via_bref_search(repo: Repo):
+    # "luka" is filed under 'd' (Dončić) — the letter index can't place it,
+    # so this exercises the search-endpoint fallback
+    assert repo.resolve("luka").pid == "doncilu01"
+
+
+def test_unknown_player_raises(repo: Repo):
+    with pytest.raises(PlayerNotFound):
         repo.resolve("Bbbbbq Jjjjjw")
-    assert exc.value.suggestions  # still offers near-misses
 
 
 def test_repeated_lookups_hit_the_cache_not_the_network(fixture_fetcher: FixtureFetcher):

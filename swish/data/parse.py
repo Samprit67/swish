@@ -151,6 +151,47 @@ def parse_index(html: str) -> list[PlayerRef]:
     return refs
 
 
+_PLAYER_HREF = re.compile(r"^/players/[a-z]/[a-z]+\d{2}\.html$")
+_YEARS = re.compile(r"\((\d{4})-(\d{4})\)\s*$")
+
+
+def parse_search(html: str | BeautifulSoup) -> list[PlayerRef]:
+    """Parse a ``/search/search.fcgi`` results page into NBA player refs.
+
+    This handles first names, partial names and nicknames; the letter-index
+    pages can't, because they file each player under his last name only.
+    """
+    soup = _soup(html)
+    out: list[PlayerRef] = []
+    seen: set[str] = set()
+    for item in soup.select("div.search-item"):
+        link = item.select_one(".search-item-name a")
+        href = link.get("href", "") if link else ""
+        if not _PLAYER_HREF.match(href):
+            continue
+        pid = href.rsplit("/", 1)[-1].removesuffix(".html")
+        if pid in seen:
+            continue
+        seen.add(pid)
+        raw = link.get_text(" ", strip=True)
+        years = _YEARS.search(raw)
+        team = item.select_one(".search-item-team")
+        pos = ""
+        if team and "Plays for" in team.get_text():
+            pos = team.get_text(strip=True).replace("Plays for:", "").strip()
+        out.append(
+            PlayerRef(
+                pid=pid,
+                name=raw[: years.start()].strip() if years else raw,
+                url_path=href,
+                from_year=int(years.group(1)) if years else 0,
+                to_year=int(years.group(2)) if years else 0,
+                position=pos,
+            )
+        )
+    return out
+
+
 # --------------------------------------------------------------------------
 # player page  ->  bio / seasons / contract
 # --------------------------------------------------------------------------

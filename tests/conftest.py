@@ -42,6 +42,11 @@ _ROUTES = {
     "/leagues/NBA_2026_per_game.html": "season_2026_per_game.html.gz",
     "/leagues/NBA_2025_advanced.html": "season_2025_advanced.html.gz",
     "/leagues/NBA_2025_per_game.html": "season_2025_per_game.html.gz",
+    "/search/search.fcgi?search=luka": "search_luka.html.gz",
+    "/search/search.fcgi?search=jokic": "search_jokic.html.gz",
+    "/search/search.fcgi?search=bogdan": "search_bogdan.html.gz",
+    "/search/search.fcgi?search=giannis": "search_giannis.html.gz",
+    "/search/search.fcgi?search=Bbbbbq+Jjjjjw": "search_none.html.gz",
 }
 
 

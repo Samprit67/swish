@@ -153,20 +153,21 @@ a { color: inherit; }
   background-repeat: no-repeat; background-position: 11px center;
 }
 .search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
-.search-results {
+.ta-host { position: relative; }
+.ta-menu {
   position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 40;
   background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px;
-  box-shadow: var(--shadow-lg); overflow: hidden; max-height: 360px; overflow-y: auto;
-  padding: 4px;
+  box-shadow: var(--shadow-lg); overflow: hidden auto; max-height: 300px; padding: 4px;
 }
-.search-results button {
+.ta-menu[hidden] { display: none; }
+.ta-menu button {
   display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%;
   background: none; border: 0; color: var(--text); font: inherit; text-align: left;
   padding: 8px 10px; cursor: pointer; border-radius: 8px;
 }
-.search-results button:hover, .search-results button.active { background: var(--surface-2); }
-.search-results .sr-name { font-weight: 600; }
-.search-results .sr-meta { color: var(--text-3); font-size: 12px; white-space: nowrap; }
+.ta-menu button:hover, .ta-menu button.active { background: var(--surface-2); }
+.ta-menu .sr-name { font-weight: 600; }
+.ta-menu .sr-meta { color: var(--text-3); font-size: 12px; white-space: nowrap; }
 
 .tabs { display: flex; gap: 2px; }
 .tabs a {

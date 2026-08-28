@@ -55,10 +55,10 @@ def test_headshot_falls_back_to_404_without_an_image(client):
     assert client.get("/api/players/jokicni01/headshot").status_code == 404
 
 
-def test_unknown_player_is_404_with_suggestions(client):
+def test_unknown_player_is_404(client):
     r = client.get("/api/players/Bbbbbq Jjjjjw/value")
     assert r.status_code == 404
-    assert r.json()["suggestions"]
+    assert "suggestions" in r.json()
 
 
 def test_compare(client):

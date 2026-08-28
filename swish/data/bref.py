@@ -37,6 +37,12 @@ def index_url(letter: str) -> str:
     return f"/players/{letter.lower()}/"
 
 
+def search_url(query: str) -> str:
+    from urllib.parse import quote_plus
+
+    return f"/search/search.fcgi?search={quote_plus(query)}"
+
+
 def season_advanced_url(season_end: int) -> str:
     return f"/leagues/NBA_{season_end}_advanced.html"
 
