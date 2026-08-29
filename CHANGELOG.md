@@ -3,9 +3,11 @@
 All notable changes to Swish. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/).
 
-## [0.4.0] — 2026-08-31
+## [0.4.0] — 2026-08-27
 
 ### Added
+- Player-search dropdowns on the compare and trade inputs; name resolution
+  falls back to Basketball-Reference's search so first names / nicknames work.
 - Player **headshots** in the hero (proxied from Basketball-Reference, cached,
   initials fallback).
 - Skill-percentile **radar chart** on the compare view.
@@ -20,7 +22,7 @@ All notable changes to Swish. Format loosely follows
 - Redesigned the whole dashboard — spacing, type, colour, dark mode, the
   value waterfall now interleaves production and salary per season.
 
-## [0.3.0] — 2026-08-31
+## [0.3.0] — 2026-08-16
 
 ### Added
 - **Web dashboard** (FastAPI + vanilla-JS SPA): player valuation, compare,
@@ -30,7 +32,7 @@ All notable changes to Swish. Format loosely follows
 - Live analytics controls: horizon, discount rate, $/win, metric
   (VORP / Win Shares / blend), contract on/off.
 
-## [0.2.0] — 2026-08
+## [0.2.0] — 2026-08-10
 
 ### Added
 - **Trade-value model** ([`swish/model/`](swish/model/)): VORP + Win Shares →
@@ -41,7 +43,7 @@ All notable changes to Swish. Format loosely follows
   they aren't counted as guaranteed salary.
 - `swish value / compare / trade / leaderboard / fetch / cache`, all with `--json`.
 
-## [0.1.0] — 2026-08
+## [0.1.0] — 2026-08-09
 
 ### Added
 - Rate-limited, cached Basketball-Reference scraper with a SQLite response cache

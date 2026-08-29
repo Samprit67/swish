@@ -47,9 +47,9 @@ dev = [
 swish = "swish.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/sgoswami/swish"
-Repository = "https://github.com/sgoswami/swish"
-Issues = "https://github.com/sgoswami/swish/issues"
+Homepage = "https://github.com/Samprit67/swish"
+Repository = "https://github.com/Samprit67/swish"
+Issues = "https://github.com/Samprit67/swish/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["swish"]

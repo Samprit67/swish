@@ -64,7 +64,7 @@ being wrong or being early is left to the reader.
 ## Quickstart
 
 ```bash
-git clone https://github.com/sgoswami/swish
+git clone https://github.com/Samprit67/swish
 cd swish
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"

@@ -48,7 +48,7 @@ class Settings:
     burst: int = 4
     #: allow the network at all; when False only the cache is consulted
     offline: bool = False
-    user_agent: str = "swish/0.3 (personal trade-value tool; +https://github.com/sgoswami/swish)"
+    user_agent: str = "swish/0.4 (personal trade-value tool; +https://github.com/Samprit67/swish)"
 
     @property
     def cache_url(self) -> str:
