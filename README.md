@@ -1,14 +1,18 @@
 # 🏀 Swish
 
-**Estimate an NBA player's trade value from his stats and his contract.**
+Estimate an NBA player's trade value from his stats and his contract.
+
+[![CI](https://github.com/Samprit67/swish/actions/workflows/ci.yml/badge.svg)](https://github.com/Samprit67/swish/actions/workflows/ci.yml)
+![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
 Type in a name. Swish pulls the player's career from Basketball-Reference,
 projects his production forward with an age curve, prices those wins in dollars,
-subtracts what he's owed, and tells you what the asset is actually worth — on a
-scale you can read as draft picks, with an honest uncertainty band.
+subtracts what he's owed, and returns what the asset is worth. The answer comes
+back on a scale you can read as draft picks, with an honest uncertainty band.
 
 <p align="center">
-  <img src="docs/screenshots/player.png" alt="Swish — player valuation" width="900">
+  <img src="docs/screenshots/player.png" alt="Swish player valuation view" width="900">
 </p>
 
 ```bash
@@ -17,49 +21,47 @@ swish value "Nikola Jokic"      # full breakdown in the terminal
 swish serve                     # dashboard at http://127.0.0.1:8770
 ```
 
----
-
 ## Why I built this
 
-Every trade deadline the same argument happens: *is this a fair deal?* The way
-analysts actually answer it is a rough mental model — how good is the player,
-how long is he good for, what's he getting paid, how does that stack against a
+Every trade deadline the same argument happens: is this a fair deal? Analysts
+answer it with a rough mental model. How good is the player, how long will he
+stay that good, what's he getting paid, and how does that stack up against a
 draft pick. I wanted to write that model down so it's explicit and reproducible
 instead of vibes, and so I could point it at any player and get a number back.
 
-The interesting part isn't scraping stats — it's the chain from **a stat line to
-a dollar figure**: converting box-score metrics to wins without letting the best
+The interesting part isn't scraping stats. It's the chain from a stat line to a
+dollar figure: turning box-score metrics into wins without letting the best
 players run away to absurd numbers, regressing a noisy single season toward
 something stable, aging the projection, and pricing wins in a way that reflects
 that a superstar on one roster spot is worth more than three good role players.
 That model lives in [`swish/model/`](swish/model/) and is written up in
 [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).
 
-It is deliberately not a fan. It prices Dallas trading Luka Dončić as more
-defensible than the consensus reaction; it is bearish on young high-volume
-scorers whose all-in-one metrics haven't caught up. Whether that's the model
+It's deliberately not a fan. It prices Dallas trading Luka Dončić as more
+defensible than the consensus reaction, and it's bearish on young high-volume
+scorers whose all-in-one metrics haven't caught up yet. Whether that's the model
 being wrong or being early is left to the reader.
 
 ## What it does
 
 | | |
 |---|---|
-| **Any player** | Resolves a name (accents, typos, `"gilgeous alexander"`, or a raw B-Ref id) against the full player index and fetches him live. |
-| **A trade-value number** | Projected wins × the market price of a win, discounted and cap-inflated, minus guaranteed salary → *surplus value*, expressed as `≈ the #7 pick`. |
-| **The whole chain, shown** | Career WAR trajectory, the aging projection with a p10–p90 fan, a waterfall from production value to salary to surplus, league percentile bars, a skill radar on compare — every intermediate number the model computed. |
-| **Uncertainty** | A ~5,000-run Monte Carlo over talent, aging, health and $/win gives a 10th–90th percentile range, not just a point estimate. |
-| **Live analytics** | Sliders for horizon, discount rate and $/win; toggles for the metric (VORP / Win Shares / blend) and whether to subtract salary. Everything recomputes. |
-| **Compare** | Two to four players side by side — value bars and skill percentiles. |
-| **Trade calculator** | Put players on each side; Swish weighs what each team gives up against what it gets back and calls it. |
-| **Leaderboard** | League-wide production-value leaders for a season (fast — one request, no contracts). |
-| **Local-first** | Every page fetched from Basketball-Reference is cached in SQLite. Second lookup is instant and works with the network off. |
-| **CLI too** | `swish value`, `compare`, `trade`, `leaderboard` for people who live in the terminal, all with `--json`. |
+| **Any player** | Resolves a name (accents, typos, "gilgeous alexander", or a raw Basketball-Reference id) and fetches him live. |
+| **A trade-value number** | Projected wins times the market price of a win, discounted and cap-inflated, minus guaranteed salary. That surplus is expressed on a draft-pick scale, like "about the #7 pick". |
+| **The whole chain, shown** | Career WAR trajectory, the aging projection with a 10th to 90th percentile fan, a waterfall from production value to salary to surplus, league percentile bars, and a skill radar on the compare view. Every intermediate number the model computed is on screen. |
+| **Uncertainty** | A 5,000-run Monte Carlo over talent, aging, health, and cost per win produces a 10th to 90th percentile range, not just a point estimate. |
+| **Live analytics** | Sliders for horizon, discount rate, and cost per win. Toggles for the metric (VORP, Win Shares, or a blend) and for whether to subtract salary. Everything recomputes. |
+| **Compare** | Two to four players side by side, with value bars and a skill radar. |
+| **Trade calculator** | Put players on each side. Swish weighs what each team gives up against what it gets back and calls it. |
+| **Leaderboard** | League-wide production-value leaders for a season, from a single request. |
+| **Local first** | Every page fetched from Basketball-Reference is cached in SQLite. The second lookup is instant and works with the network off. |
+| **A CLI too** | `swish value`, `compare`, `trade`, and `leaderboard`, all with a `--json` flag. |
 
 ## Screenshots
 
 | Compare | Trade calculator | Leaderboard |
 |---|---|---|
-| ![](docs/screenshots/compare.png) | ![](docs/screenshots/trade.png) | ![](docs/screenshots/leaderboard.png) |
+| ![Compare view](docs/screenshots/compare.png) | ![Trade calculator](docs/screenshots/trade.png) | ![Leaderboard](docs/screenshots/leaderboard.png) |
 
 ## Quickstart
 
@@ -76,81 +78,87 @@ swish serve
 ```
 
 The first lookup of a player makes one or two requests to
-basketball-reference.com (~1–2s — the server warms the league context in the
-background on startup, and a token-bucket throttle lets a cold lookup burst).
-After that it's served from the cache at
-`~/Library/Application Support/swish/cache.db` (macOS) or `$XDG_DATA_HOME/swish`
-(Linux). `swish cache info` shows what's stored; `swish cache clear` empties it.
+basketball-reference.com and takes a second or two. The server warms the
+league-wide context in a background thread on startup, and a token-bucket
+throttle lets a cold lookup fire its requests without pausing between them.
+After that, everything is served from a local cache
+(`~/Library/Application Support/swish/cache.db` on macOS,
+`$XDG_DATA_HOME/swish` on Linux) and works offline. Run `swish cache info` to
+see what's stored, or `swish cache clear` to empty it.
 
 ## How the number is built
 
 ```
-name ──► basketball-reference.com ──► career per-game + advanced + contract
-                                          │
-  1. blend VORP and Win Shares ──► wins above replacement (calibrated)
-  2. regress the last 3 seasons toward the player's own recent form
-  3. age curve ──► project the next N seasons
-  4. price the wins  (~$3.3M each, cap-grown, discounted, star premium)
-  5. subtract guaranteed salary ──► surplus value
-  6. map onto a draft-pick-value curve ──► "≈ the #7 pick"
-  7. resample everything ~5,000× ──► p10 / p50 / p90
+name -> basketball-reference.com -> career per-game + advanced + contract
+
+  1. blend VORP and Win Shares into wins above replacement (calibrated)
+  2. regress the last three seasons toward the player's own recent form
+  3. apply an age curve to project the next N seasons
+  4. price the wins: about $3.3M each, grown with the cap, discounted,
+     with a premium for production concentrated on one roster spot
+  5. subtract guaranteed salary to get surplus value
+  6. map the surplus onto a draft-pick-value curve
+  7. resample every step 5,000 times for the 10th / 50th / 90th percentile
 ```
 
-Every step is a pure, typed function over plain dataclasses; every constant sits
-in [`swish/model/params.py`](swish/model/params.py) with its source. Full
-write-up: [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) ·
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) ·
+Every step is a pure, typed function over plain dataclasses, and every constant
+sits in [`swish/model/params.py`](swish/model/params.py) with a source. The full
+write-up is in [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md), with the layout in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and the scraping details in
 [`docs/DATA.md`](docs/DATA.md).
 
 ## Tech
 
-- **Python 3.10+** · **FastAPI** + **Uvicorn** · **Typer** CLI · **NumPy** for the model
-- Scraper: **httpx** + **BeautifulSoup**/**lxml**, rate-limited, with a SQLite response cache
-- Frontend: **vanilla ES modules**, no build step, SVG charts written by hand ([`swish/web/charts.js`](swish/web/charts.js))
-- Tooling: **ruff**, **mypy** (strict on the model core), **pytest** + **Hypothesis**, **GitHub Actions**
+- Python 3.10+, FastAPI and Uvicorn, a Typer CLI, NumPy for the model
+- Scraper: httpx with BeautifulSoup and lxml, rate limited, backed by a SQLite response cache
+- Frontend: vanilla ES modules, no build step, SVG charts written by hand in [`swish/web/charts.js`](swish/web/charts.js)
+- Tooling: ruff, mypy (strict on the model core), pytest with Hypothesis, GitHub Actions
 
 ## Testing
 
 ```bash
-pytest                 # ~60 tests, ~12s, fully offline
+pytest                 # 70 tests, around 12 seconds, fully offline
 pytest --cov=swish
 ruff check swish tests && ruff format --check swish tests
 mypy swish
 ```
 
 The suite runs against recorded Basketball-Reference HTML in
-[`tests/fixtures/`](tests/fixtures/) — the scraper's network call is the only
-thing stubbed, so the parsers and model are exercised against real pages. The
-model has property tests (Hypothesis): more WAR ⇒ more value, younger ⇒ more
-value at equal production, higher salary ⇒ less surplus, `p10 ≤ p50 ≤ p90`.
+[`tests/fixtures/`](tests/fixtures/). The scraper's network call is the only
+thing stubbed, so the parsers and the model run against real captured pages.
+The model carries property tests: more WAR always means more value, a younger
+player is worth more at equal production, a higher salary means less surplus,
+and the percentiles stay ordered.
 
 ## Known limitations
 
-- **One blended box-score metric.** VORP and Win Shares are box-score-derived;
-  they underrate high-usage shot creators. Banchero is the clearest current case.
+- **One blended box-score metric.** VORP and Win Shares are both box-score
+  derived, and they underrate high-usage shot creators. Banchero is the clearest
+  current example.
 - **The aging curve is a population average.** Individual players age faster or
-  slower than the curve; the model doesn't know which.
-- **Options are treated as guaranteed.** A player/team option year is counted at
-  face value and flagged, not modelled.
-- **It needs recent NBA minutes.** Rookies with no NBA season and players years
-  removed from the league get a "not enough data" error.
-- **Basketball-Reference is the single source.** If they're down and the page
+  slower than the curve, and the model has no way to tell which.
+- **Options are treated as guaranteed.** A player or team option year is counted
+  at face value and flagged, rather than modelled.
+- **It needs recent NBA minutes.** A player with no recent NBA season gets a
+  "not enough data" error.
+- **Basketball-Reference is the only source.** If the site is down and the page
   isn't cached, the lookup fails.
 
 ## Roadmap
 
-- [ ] Fit the aging curve from the historical data in the cache (`swish calibrate`)
-- [ ] Play-by-play / tracking metrics to temper the box-score blind spots
-- [ ] Model player and team options as decisions, not guarantees
-- [ ] Cap-sheet awareness in the trade calculator (salary matching)
-- [ ] Historical "what was he worth *then*" mode
+- [ ] Fit the aging curve from the historical data already in the cache
+- [ ] Add a tracking or play-by-play metric to temper the box-score blind spot
+- [ ] Model player and team options as decisions rather than guarantees
+- [ ] Salary matching in the trade calculator
+- [ ] A "what was he worth back then" historical mode
 
 ## The name
 
-A shot that goes straight through without touching the rim. The goal here is the
-same: a clean number, and you can see exactly how it got there.
+A shot that drops straight through without touching the rim. The aim here is the
+same: a clean number, and a clear view of how it got there.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Not affiliated with the NBA or Sports Reference.
-Player data © Sports Reference LLC; see [`docs/DATA.md`](docs/DATA.md).
+MIT, see [LICENSE](LICENSE). Not affiliated with the NBA or Sports Reference.
+Player statistics are copyright Sports Reference LLC; see
+[`docs/DATA.md`](docs/DATA.md).
