@@ -181,7 +181,7 @@ def _pick_phrase(pick: float) -> str:
 
 def _small_phrase(surplus: float, p: Params) -> str:
     if surplus <= 0:
-        return "negative — the contract outweighs the production"
+        return "no positive trade value once the contract is subtracted"
     if surplus < p.min_salary:
         return "a second-round pick or cash"
     return "a fringe second-round pick"

@@ -8,6 +8,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.types import Scope
 
 from swish import __version__
 from swish.config import Settings, settings_from_env
@@ -17,6 +18,18 @@ from swish.data.repo import Repo
 from swish.errors import NotEnoughData, PlayerNotFound, SourceUnavailable, SwishError
 
 _WEB_DIR = Path(__file__).resolve().parent.parent / "web"
+
+
+class _NoCacheStatic(StaticFiles):
+    """Serve the SPA without letting the browser hold onto stale JS or CSS."""
+
+    def is_not_modified(self, response_headers, request_headers) -> bool:
+        return False
+
+    async def get_response(self, path: str, scope: Scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        return response
 
 
 def create_app(settings: Settings | None = None, repo: Repo | None = None) -> FastAPI:
@@ -49,7 +62,7 @@ def create_app(settings: Settings | None = None, repo: Repo | None = None) -> Fa
     _install_error_handlers(app)
 
     if _WEB_DIR.is_dir():
-        app.mount("/", StaticFiles(directory=str(_WEB_DIR), html=True), name="web")
+        app.mount("/", _NoCacheStatic(directory=str(_WEB_DIR), html=True), name="web")
 
     return app
 
