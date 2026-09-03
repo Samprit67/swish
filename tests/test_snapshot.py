@@ -91,3 +91,14 @@ def test_committed_snapshot_is_usable() -> None:
     for card in snap.cards.values():
         assert card.bio.name
         assert card.seasons, f"{card.bio.pid} has no seasons"
+
+
+def test_committed_snapshot_ranks_the_bigger_career_first() -> None:
+    snap = load_snapshot()
+    if snap is None:
+        pytest.skip("no committed snapshot in this tree")
+
+    # "luka" matches both Dončić and Garza; the star should win both paths
+    assert snap.search("luka")[0].name.endswith("Dončić")
+    resolved = snap.resolve("luka")
+    assert resolved is not None and resolved.name.endswith("Dončić")

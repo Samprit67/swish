@@ -111,9 +111,23 @@ class Snapshot:
         return hits[:limit]
 
     def _ranked(self, query: str) -> list[tuple[float, PlayerRef]]:
+        # rank by: does a name word match the query (exact, then prefix), then
+        # the fuzzy score, then career size. So "ja" leads with Morant not
+        # James, and "luka" with Dončić not Garza.
+        want = bref.normalize(query)
+
+        def key(pair: tuple[float, PlayerRef]) -> tuple[int, float, int]:
+            score, ref = pair
+            words = bref.normalize(ref.name).split()
+            word_match = max(
+                (2 if w == want else 1 if w.startswith(want) else 0 for w in words),
+                default=0,
+            )
+            return (word_match, round(score, 1), self._career_minutes(ref.pid))
+
         return sorted(
             ((bref.score_match(query, r), r) for r in self.refs),
-            key=lambda pair: pair[0],
+            key=key,
             reverse=True,
         )
 
