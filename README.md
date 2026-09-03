@@ -6,6 +6,8 @@ Estimate an NBA player's trade value from his stats and his contract.
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab)
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
+**Live demo: <https://swish-5121.onrender.com>** (free tier, the first load takes ~30s to wake the server)
+
 Type in a name. Swish pulls the player's career from Basketball-Reference,
 projects his production forward with an age curve, prices those wins in dollars,
 subtracts what he's owed, and returns what the asset is worth. The answer comes
