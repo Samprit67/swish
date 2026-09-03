@@ -105,9 +105,8 @@ function headshot(pid, name) {
   const box = h("div", { class: "shot" }, initials || "··");
   if (pid && !/\s/.test(pid)) {
     const img = new Image();
-    img.onload = () => { box.textContent = ""; box.style.border = "0"; box.append(img); };
-    img.className = "shot";
-    img.style.cssText = "width:100%;height:100%;border:0";
+    img.alt = name || "";
+    img.onload = () => { box.textContent = ""; box.style.borderColor = "transparent"; box.append(img); };
     img.src = `/api/players/${encodeURIComponent(pid)}/headshot`;
   }
   return box;

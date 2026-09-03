@@ -427,8 +427,8 @@ h4 {
   padding: 24px 26px;
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 20px 24px;
-  align-items: center;
+  gap: 18px 24px;
+  align-items: start;
 }
 .hero::before {
   content: "";
@@ -460,9 +460,9 @@ h4 {
 .shot {
   width: 92px;
   height: 92px;
+  flex: none;
   border-radius: 18px;
-  object-fit: cover;
-  object-position: top;
+  overflow: hidden;
   background: var(--surface-2);
   border: 1px solid var(--border);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
@@ -471,7 +471,13 @@ h4 {
   font-weight: 800;
   font-size: 26px;
   color: var(--text-3);
-  flex: none;
+}
+.shot img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
 }
 .hero .who {
   min-width: 0;
