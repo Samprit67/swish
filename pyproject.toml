@@ -53,7 +53,7 @@ Issues = "https://github.com/Samprit67/swish/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["swish"]
-artifacts = ["swish/web/**/*"]
+artifacts = ["swish/web/**/*", "swish/data/*.json"]
 
 [tool.ruff]
 line-length = 108
