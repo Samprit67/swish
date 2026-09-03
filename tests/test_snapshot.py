@@ -102,3 +102,13 @@ def test_committed_snapshot_ranks_the_bigger_career_first() -> None:
     assert snap.search("luka")[0].name.endswith("Dončić")
     resolved = snap.resolve("luka")
     assert resolved is not None and resolved.name.endswith("Dončić")
+
+
+def test_committed_snapshot_search_takes_one_letter() -> None:
+    snap = load_snapshot()
+    if snap is None:
+        pytest.skip("no committed snapshot in this tree")
+
+    hits = snap.search("d", limit=8)
+    assert len(hits) >= 4
+    assert any("Durant" in h.name or "Dončić" in h.name for h in hits)

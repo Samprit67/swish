@@ -115,7 +115,7 @@ function headshot(pid, name) {
 // ------------------------------------------------------------------ typeahead
 // Attaches a player-search dropdown to any <input> whose parent form/box is
 // position:relative. onPick(ref) fires when the user chooses a player.
-function typeahead(input, onPick, { min = 2, clearOnPick = true } = {}) {
+function typeahead(input, onPick, { min = 1, clearOnPick = true } = {}) {
   const host = input.closest("form") || input.parentElement;
   host.classList.add("ta-host");
   const menu = h("div", { class: "ta-menu" });

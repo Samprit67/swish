@@ -50,7 +50,7 @@ def meta() -> dict:
 
 
 @router.get("/players/search")
-def search(repo: RepoDep, q: str = Query(min_length=2)) -> dict:
+def search(repo: RepoDep, q: str = Query(min_length=1)) -> dict:
     return {"query": q, "results": [ref_dict(r) for r in repo.search(q)]}
 
 

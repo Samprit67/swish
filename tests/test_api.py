@@ -21,6 +21,10 @@ def test_search(client):
     assert any(row["pid"] == "jokicni01" for row in body["results"])
 
 
+def test_search_rejects_empty_query(client):
+    assert client.get("/api/players/search", params={"q": ""}).status_code == 422
+
+
 def test_player_card(client):
     body = client.get("/api/players/Luka Doncic").json()
     assert body["pid"] == "doncilu01"

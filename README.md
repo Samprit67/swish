@@ -120,7 +120,7 @@ write-up is in [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md), with the layout in
 ## Testing
 
 ```bash
-pytest                 # 77 tests, around 14 seconds, fully offline
+pytest                 # 80 tests, around 14 seconds, fully offline
 pytest --cov=swish
 ruff check swish tests && ruff format --check swish tests
 mypy swish
