@@ -25,6 +25,48 @@ const view = () => $("#view");
 const clear = (n) => { while (n.firstChild) n.removeChild(n.firstChild); };
 const chart = (node) => h("div", { class: "chart" }, node);
 
+// count a number up to `target` over ~0.6s, formatting each frame
+function countUp(node, target, fmt) {
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+    node.textContent = fmt(target);
+    return;
+  }
+  const start = performance.now();
+  const dur = 620;
+  const step = (now) => {
+    const t = Math.min(1, (now - start) / dur);
+    const e = 1 - Math.pow(1 - t, 3);
+    node.textContent = fmt(target * e);
+    if (t < 1) requestAnimationFrame(step);
+    else node.textContent = fmt(target);
+  };
+  requestAnimationFrame(step);
+}
+
+// horizontal p10-p90 range bar with a marker at the headline value
+function rangeBar(p10, p50, p90, point) {
+  const lo0 = Math.min(p10, point);
+  const hi0 = Math.max(p90, point);
+  const pad = (hi0 - lo0) * 0.14 || 1;
+  const lo = lo0 - pad;
+  const hi = hi0 + pad;
+  const at = (v) => Math.max(0, Math.min(100, ((v - lo) / (hi - lo)) * 100));
+  const span = h("span", { class: "span", style: `left:${at(p10)}%;right:${100 - at(p90)}%` });
+  const mid = h("span", { class: "mid", style: `left:${at(p50)}%` });
+  const dot = h("span", { class: "dot", style: `left:${at(point)}%` });
+  return h(
+    "div",
+    { class: "range-bar" },
+    h("div", { class: "track" }, span, mid, dot),
+    h(
+      "div",
+      { class: "ends" },
+      h("span", {}, F.millions(p10) + " floor"),
+      h("span", {}, F.millions(p90) + " ceiling"),
+    ),
+  );
+}
+
 let toastT;
 function toast(msg) {
   const t = $("#toast");
@@ -177,8 +219,10 @@ function playerSkeleton(hint) {
     v.append(h("div", { class: "hero" },
       headshot(hint.pid, hint.name),
       h("div", { class: "who" }, h("div", { class: "name" }, hint.name),
-        h("div", { class: "meta muted" }, hint.position || "loading…")),
-      h("div", { class: "headline" }, h("div", { class: "sk sk-wide", style: "width:180px;height:52px;margin-left:auto" }))));
+        h("div", { class: "meta muted" }, hint.position || "reading the tape")),
+      h("div", { class: "value-block" },
+        h("div", {}, h("div", { class: "sk", style: "width:210px;height:66px;border-radius:12px" })),
+        h("div", { class: "sk", style: "height:34px;border-radius:999px" }))));
   } else {
     v.append(h("div", { class: "sk sk-hero" }));
   }
@@ -192,6 +236,9 @@ function paintPlayer(d) {
   clear(v);
   const pos = d.swish_value >= 0;
 
+  const digits = d.swish_value >= 1e8 || d.swish_value <= -1e8 ? 0 : 1;
+  const bigNode = h("div", { class: "big " + (pos ? "pos" : "neg") }, F.millions(d.swish_value, digits));
+
   v.append(h("div", { class: "hero" },
     headshot(d.player.pid, d.player.name),
     h("div", { class: "who" },
@@ -202,11 +249,14 @@ function paintPlayer(d) {
         h("span", { class: "chip accent" }, `${F.war(d.talent_war)} talent WAR`),
         h("span", { class: "chip" }, `proj ${F.seasonLabel(d.first_projected_season)}+`),
         h("span", { class: "chip cool" }, d.used_contract ? "surplus over contract" : "production value"))),
-    h("div", { class: "headline" },
-      h("div", { class: "big " + (pos ? "pos" : "neg") }, F.millions(d.swish_value, d.swish_value >= 1e8 || d.swish_value <= -1e8 ? 0 : 1)),
-      h("div", { class: "label" }, d.used_contract ? "Swish value" : "on-court value"),
-      h("div", { class: "range" }, `${F.millions(d.band.p10)} → ${F.millions(d.band.p90)}`),
-      h("div", { class: "pick " + (d.pick.number > 60 ? "muted" : "") }, "≈ " + d.pick.text))));
+    h("div", { class: "value-block" },
+      h("div", { class: "value-lead" },
+        bigNode,
+        h("div", { class: "label" }, d.used_contract ? "Swish value" : "on-court value"),
+        h("div", { class: "pick " + (d.pick.number > 60 ? "muted" : "") }, (d.swish_value < 0 ? "" : "≈ ") + d.pick.text)),
+      rangeBar(d.band.p10, d.band.p50, d.band.p90, d.swish_value))));
+
+  countUp(bigNode, d.swish_value, (x) => F.millions(x, digits));
 
   const hist = h("div", { class: "card" }, h("h3", {}, "Where the estimate could land"),
     chart(C.histogram(d.simulation.histogram,
@@ -443,17 +493,57 @@ function errBox(e) {
   return box;
 }
 function renderError(e) { clear(view()); view().append(errBox(e)); }
+function landingVisual() {
+  return h("div", {
+    class: "landing-visual",
+    html: `
+<svg viewBox="0 0 320 320" role="img" aria-label="A basketball arcing toward the hoop">
+  <circle class="lv-ring" cx="224" cy="96" r="112"/>
+  <path class="lv-line" d="M18 302 v-54 a138 138 0 0 1 276 0 v54"/>
+  <path class="lv-line lv-key" d="M122 302 v-64 h76 v64"/>
+  <path class="lv-arc" d="M44 292 C 96 128 198 64 288 150"/>
+  <line class="lv-line lv-post" x1="292" y1="118" x2="292" y2="176"/>
+  <path class="lv-rim" d="M262 150 h30"/>
+  <path class="lv-net" d="M264 151 l6 17 M278 151 l-3 17 M291 151 l-9 18"/>
+  <g transform="translate(148 104)">
+    <g class="lv-ball">
+      <circle r="27"/>
+      <path class="lv-seam" d="M0 -27 V27 M-27 0 H27 M0 -27 C -20 -13 -20 13 0 27 M0 -27 C 20 -13 20 13 0 27"/>
+    </g>
+  </g>
+</svg>`,
+  });
+}
+
 function renderLanding() {
   const v = view();
   clear(v);
-  const ex = h("div", { class: "ex" });
-  ["Nikola Jokic", "Luka Doncic", "Victor Wembanyama", "Shai Gilgeous-Alexander", "Anthony Edwards"].forEach((n) =>
+
+  const input = h("input", { type: "search", placeholder: "Search any NBA player", "aria-label": "Search any NBA player" });
+  const searchBox = h("div", { class: "big-search" }, input);
+  typeahead(input, (r) => (location.hash = `#/player/${r.pid}`));
+  input.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    setTimeout(() => {
+      if (e.defaultPrevented) return;
+      const q = input.value.trim();
+      if (q) location.hash = `#/player/${encodeURIComponent(q)}`;
+    }, 0);
+  });
+
+  const ex = h("div", { class: "ex" }, h("span", {}, "Try"));
+  ["Nikola Jokic", "Luka Doncic", "Victor Wembanyama", "Anthony Edwards"].forEach((n) =>
     ex.append(h("button", { onclick: () => (location.hash = `#/player/${encodeURIComponent(n)}`) }, n)));
+
   v.append(h("div", { class: "landing" },
-    h("div", { class: "mark" }, "🏀"),
-    h("h2", {}, "What's he worth in a trade?"),
-    h("p", {}, "Search any NBA player. Swish reads his career and contract and estimates his trade value — with the math shown."),
-    ex));
+    h("div", { class: "landing-copy" },
+      h("div", { class: "eyebrow" }, "Shows its work"),
+      h("h1", { html: "What is he actually <em>worth</em>?" }),
+      h("p", { class: "lede" },
+        "Search any NBA player. Swish reads his career, age curve and contract, then estimates what he brings back in a trade, right down to the pick, with every step of the math in the open."),
+      searchBox,
+      ex),
+    landingVisual()));
 }
 function setTab(name) {
   document.querySelectorAll("#tabs a").forEach((a) => a.classList.toggle("active", a.dataset.tab === name));
