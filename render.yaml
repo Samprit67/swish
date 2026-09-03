@@ -1,10 +1,11 @@
 # Deploy to Render (https://render.com). Push the repo, then in the Render
 # dashboard choose "New > Blueprint" and point it at this file.
 #
-# Note: Swish fetches from basketball-reference.com on demand. From a datacenter
-# IP the first lookup of an uncached player can be slow or rate-limited, and the
-# free plan's disk is wiped on redeploy, so the SQLite cache does not persist
-# between deploys. It works, but a warm local run is smoother.
+# The committed season snapshot (swish/data/season.json) means the common
+# lookups need no network, so a cold deploy is fast. A player outside the
+# snapshot is still fetched from basketball-reference.com on demand, which from a
+# datacenter IP can be slow or rate-limited; the free plan also wipes the disk
+# on redeploy, so that live cache does not persist between deploys.
 services:
   - type: web
     name: swish

@@ -39,9 +39,11 @@ console = Console()
 
 
 def _repo() -> Repo:
+    from swish.data.snapshot import load_snapshot
+
     settings = settings_from_env()
     settings.ensure_dirs()
-    return Repo(Fetcher(Cache(settings.cache_url), settings))
+    return Repo(Fetcher(Cache(settings.cache_url), settings), snapshot=load_snapshot())
 
 
 def _m(value: float) -> str:
@@ -209,6 +211,65 @@ def fetch(name: str = typer.Argument(..., help="Player to pull into the cache.")
     except SwishError as exc:
         _fail(exc)
     console.print(f"[green]✓[/] cached {ref.name} in {time.monotonic() - started:.1f}s")
+
+
+data_app = typer.Typer(help="Build or inspect the committed season snapshot.")
+app.add_typer(data_app, name="data")
+
+
+@data_app.command("build")
+def data_build(
+    season: int | None = typer.Option(None, "--season", help="Season end year, e.g. 2026."),
+    top: int | None = typer.Option(None, help="How many players (by minutes) to capture."),
+) -> None:
+    """Scrape the season's rotation players into swish/data/season.json.
+
+    Dev-only and slow: it fetches one Basketball-Reference page per player at the
+    polite rate. Re-runs are cheap because the local cache is reused.
+    """
+    from swish.data.snapshot import DEFAULT_TOP, SNAPSHOT_PATH, build_snapshot, save_snapshot
+
+    settings = settings_from_env()
+    settings.ensure_dirs()
+    live = Repo(Fetcher(Cache(settings.cache_url), settings))
+    season_end = season or current_season_end()
+    count = top or DEFAULT_TOP
+
+    started = time.monotonic()
+    try:
+        with console.status("fetching season context") as status:
+
+            def _tick(i: int, n: int, name: str) -> None:
+                status.update(f"[{i}/{n}] {name}")
+
+            snap, failed = build_snapshot(live, season_end, top=count, progress=_tick)
+    except SwishError as exc:
+        _fail(exc)
+
+    save_snapshot(snap)
+    size_kb = SNAPSHOT_PATH.stat().st_size / 1024
+    console.print(
+        f"[green]✓[/] wrote {len(snap.cards)} players for {season_end - 1}-{str(season_end)[2:]} "
+        f"({size_kb:,.0f} KB) in {time.monotonic() - started:.0f}s\n[dim]{SNAPSHOT_PATH}[/]"
+    )
+    if failed:
+        console.print(f"[yellow]could not fetch:[/] {', '.join(failed)}")
+
+
+@data_app.command("info")
+def data_info() -> None:
+    """Show what the committed snapshot holds."""
+    from swish.data.snapshot import SNAPSHOT_PATH, load_snapshot
+
+    snap = load_snapshot()
+    if snap is None:
+        console.print("[yellow]no snapshot[/] — run [bold]swish data build[/]")
+        raise typer.Exit(1)
+    size_kb = SNAPSHOT_PATH.stat().st_size / 1024
+    console.print(
+        f"season {snap.season_end - 1}-{str(snap.season_end)[2:]} · {len(snap.cards)} players · "
+        f"built {snap.built_at or 'unknown'} · {size_kb:,.0f} KB\n[dim]{SNAPSHOT_PATH}[/]"
+    )
 
 
 cache_app = typer.Typer(help="Inspect or clear the local page cache.")

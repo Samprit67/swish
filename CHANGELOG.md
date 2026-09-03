@@ -3,6 +3,23 @@
 All notable changes to Swish. The format loosely follows
 [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.5.0] - 2026-09-02
+
+### Added
+- A committed **season snapshot** (`swish/data/season.json`): this season's top
+  ~320 players by minutes, plus the league context, parsed and stored in the
+  repo. A fresh clone or deploy answers common lookups instantly with no
+  network. `swish data build` rebuilds it; `swish data info` shows what it holds.
+
+### Changed
+- Reworked the front end: a warm paper and charcoal palette on Archivo, a
+  player hero that leads with a counting value and a 10th to 90th range bar, and
+  a two-column landing page with a hand-drawn shot-arc graphic.
+- Static assets are served `no-cache` so a redeploy never leaves a stale bundle
+  in the browser.
+- The long-tail live lookup is unchanged; only players outside the snapshot
+  touch the network now.
+
 ## [0.4.0] - 2026-08-27
 
 ### Added

@@ -15,6 +15,7 @@ from swish.config import Settings, settings_from_env
 from swish.data.cache import Cache
 from swish.data.fetch import Fetcher
 from swish.data.repo import Repo
+from swish.data.snapshot import load_snapshot
 from swish.errors import NotEnoughData, PlayerNotFound, SourceUnavailable, SwishError
 
 _WEB_DIR = Path(__file__).resolve().parent.parent / "web"
@@ -47,13 +48,16 @@ def create_app(settings: Settings | None = None, repo: Repo | None = None) -> Fa
     owns_repo = repo is None
     if repo is None:
         cache = Cache(settings.cache_url)
-        repo = Repo(Fetcher(cache, settings))
+        # the committed season snapshot answers common lookups with no network;
+        # the fetcher is still there for the long tail
+        repo = Repo(Fetcher(cache, settings), snapshot=load_snapshot())
     app.state.settings = settings
     app.state.repo = repo
 
     if owns_repo and not settings.offline:
         # warm the current-season leaderboard in the background so the first
-        # player lookup only has to fetch that player's own page
+        # player lookup only has to fetch that player's own page (skipped when
+        # the snapshot already has it)
         threading.Thread(target=repo.prewarm, daemon=True).start()
 
     from swish.api.routes import router

@@ -68,3 +68,14 @@ def test_fetch_reports_success():
     result = runner.invoke(cli.app, ["fetch", "Luka Doncic"])
     assert result.exit_code == 0
     assert "cached Luka Dončić" in result.stdout
+
+
+def test_data_info():
+    from swish.data.snapshot import load_snapshot
+
+    result = runner.invoke(cli.app, ["data", "info"])
+    if load_snapshot() is None:
+        assert result.exit_code == 1
+    else:
+        assert result.exit_code == 0
+        assert "players" in result.stdout

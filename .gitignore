@@ -17,8 +17,9 @@ venv/
 coverage.xml
 htmlcov/
 
-# Swish runtime data — everything fetched from Basketball-Reference lives in the
-# on-disk cache and is never committed. Only tests/fixtures/ is tracked.
+# Swish runtime data — pages fetched live from Basketball-Reference live in the
+# on-disk cache and are never committed. The tracked data is tests/fixtures/ and
+# the derived swish/data/season.json snapshot.
 cache.db
 *.cache.db
 /scratch/

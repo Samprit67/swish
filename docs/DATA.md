@@ -1,7 +1,30 @@
 # Data
 
-Swish reads from **basketball-reference.com**. It stores no dataset of its own.
-Every page is fetched on demand and cached locally.
+Swish reads from **basketball-reference.com**. Two things sit in front of that:
+
+1. A **committed season snapshot** ([`swish/data/season.json`](../swish/data/season.json)),
+   rebuilt with `swish data build`. It holds this season's top ~320 players by
+   minutes (career tables, contract, salary history) plus the league context,
+   already parsed. The app reads it before anything else, so a fresh clone or a
+   cold deploy answers common lookups with no network at all.
+2. A **local SQLite cache** of every page fetched live, for everyone outside the
+   snapshot.
+
+## The season snapshot
+
+`swish data build` walks the current season's advanced leaderboard, takes the
+top N players by minutes (320 by default, `--top` to change), fetches each
+player page once through the normal rate-limited path, and writes the parsed
+`Snapshot` to `swish/data/season.json` (about 1 MB, one compact line, like a
+lockfile). Re-runs reuse the cache, so a rebuild after a few new games is cheap.
+
+`swish data info` prints the season, player count, and build date.
+`load_snapshot()` in [`snapshot.py`](../swish/data/snapshot.py) is what the app
+calls on start; a missing or unparseable file just means "fall back to live".
+
+It is a point-in-time copy: numbers freeze at build time. Rerun `swish data
+build` when the season moves on (the committed file's `built_at` says how old it
+is).
 
 ## Pages used
 
@@ -31,9 +54,12 @@ From [`fetch.py`](../swish/data/fetch.py):
 - Every response is cached in SQLite, so repeat runs make zero requests. A cold
   single-player lookup is three or four requests, and everything after that is
   served from disk.
+- `swish data build` is the one job that fetches in bulk: ~320 player pages, one
+  every 3 seconds, about eight minutes. It is run by hand, occasionally, not on
+  a schedule.
 
 Analysing one player and browsing his dashboard is a handful of requests. The
-leaderboard is two. This is well within reasonable personal use, but it is still
+leaderboard is two. This is within reasonable personal use, but it is still
 scraping, so read
 [Sports Reference's terms](https://www.sports-reference.com/termsofuse.html) and
 do not point it at a loop.
@@ -58,8 +84,8 @@ SWISH_OFFLINE=1 swish value "Nikola Jokic"   # cache only, never touch the netwo
 pages, gzipped, captured once. The test suite serves these instead of hitting
 the network (`FixtureFetcher` in `conftest.py` overrides `Fetcher._download`),
 so the parsers and the model run against genuine HTML with no flakiness. They
-are test infrastructure, not a shipped dataset. The application itself always
-fetches live.
+are test infrastructure: raw pages the parsers turn into dataclasses, separate
+from the committed `season.json` the running app reads.
 
 To refresh them, re-run the capture with a live network connection. The URL map
 is in the docstring at the top of `tests/conftest.py`.
@@ -67,5 +93,11 @@ is in the docstring at the top of `tests/conftest.py`.
 ## Licensing
 
 Player statistics and salary data are copyright Sports Reference LLC. Swish is an
-independent tool, not affiliated with or endorsed by Sports Reference or the
-NBA. The code is MIT licensed; the data it fetches is not Swish's to relicense.
+independent project, not affiliated with or endorsed by Sports Reference or the
+NBA.
+
+The code is MIT licensed. The data is not Swish's to relicense.
+`swish/data/season.json` is a small derived subset (about 320 players' parsed
+career and contract lines) checked in so the demo runs offline; it is credited
+here and to be treated as Sports Reference's, not redistributed as a dataset.
+Delete it and the app rebuilds it live.

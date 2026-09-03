@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import contextlib
 from concurrent.futures import ThreadPoolExecutor
+from typing import TYPE_CHECKING
 
 from swish.data import bref, parse
 from swish.data.fetch import (
@@ -23,10 +24,14 @@ from swish.data.fetch import (
 from swish.data.schema import PlayerCard, PlayerRef, SeasonContext
 from swish.errors import PlayerNotFound, SwishError
 
+if TYPE_CHECKING:
+    from swish.data.snapshot import Snapshot
+
 
 class Repo:
-    def __init__(self, fetcher: Fetcher):
+    def __init__(self, fetcher: Fetcher, snapshot: Snapshot | None = None):
         self.fetch = fetcher
+        self.snapshot = snapshot
         self._index_cache: dict[str, list[PlayerRef]] = {}
         self._context_cache: dict[int, SeasonContext] = {}
 
@@ -34,6 +39,10 @@ class Repo:
 
     def resolve(self, query: str) -> PlayerRef:
         query = query.strip()
+        if self.snapshot is not None:
+            hit = self.snapshot.resolve(query)
+            if hit is not None:
+                return hit
         if bref.looks_like_pid(query):
             return PlayerRef(
                 pid=query,
@@ -85,6 +94,20 @@ class Repo:
                     to_year=bref.current_season_end(),
                 )
             ]
+
+        snap_hits = self.snapshot.search(query, limit) if self.snapshot is not None else []
+        # the snapshot covers the rotation; only reach for B-Ref's search when it
+        # comes back thin (first names, nicknames, deep-bench or retired players)
+        if len(snap_hits) >= 4 or self.fetch.settings.offline:
+            return snap_hits[:limit]
+        try:
+            live = self._live_search(query, limit)
+        except SwishError:
+            live = []
+        seen = {r.pid for r in snap_hits}
+        return (snap_hits + [r for r in live if r.pid not in seen])[:limit]
+
+    def _live_search(self, query: str, limit: int) -> list[PlayerRef]:
         html = self.fetch.get(bref.search_url(query), max_age=MAX_AGE_SEASON)
         hits = parse.parse_search(html)
         want = bref.normalize(query)
@@ -96,6 +119,10 @@ class Repo:
     def player_card(self, ref: PlayerRef | str) -> PlayerCard:
         if isinstance(ref, str):
             ref = self.resolve(ref)
+        if self.snapshot is not None:
+            card = self.snapshot.card(ref.pid)
+            if card is not None:
+                return card
         html = self.fetch.get(ref.url_path, max_age=MAX_AGE_PLAYER)
         soup = parse.soup(html)  # parse the ~1 MB page once, reuse for every table
         upcoming = bref.upcoming_season_end()
@@ -119,6 +146,8 @@ class Repo:
     # -- season context ----------------------------------------------
 
     def season_context(self, season_end: int) -> SeasonContext:
+        if self.snapshot is not None and self.snapshot.season_end == season_end:
+            return self.snapshot.context
         if season_end in self._context_cache:
             return self._context_cache[season_end]
         # the two leaderboard pages are independent — fetch them together so a
@@ -138,10 +167,14 @@ class Repo:
         """Best-effort: pull the current season's context into the cache.
 
         Called in a background thread on server start so the first user lookup
-        only has to fetch the player's own page.
+        only has to fetch the player's own page. A no-op when the committed
+        snapshot already covers the season.
         """
+        season_end = season_end or bref.current_season_end()
+        if self.snapshot is not None and self.snapshot.season_end == season_end:
+            return
         with contextlib.suppress(SwishError):
-            self.season_context(season_end or bref.current_season_end())
+            self.season_context(season_end)
 
     # -- internals --------------------------------------------------
 

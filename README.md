@@ -46,7 +46,7 @@ being wrong or being early is left to the reader.
 
 | | |
 |---|---|
-| **Any player** | Resolves a name (accents, typos, "gilgeous alexander", or a raw Basketball-Reference id) and fetches him live. |
+| **Any player** | Resolves a name (accents, typos, "gilgeous alexander", or a raw Basketball-Reference id). This season's rotation ships in a committed snapshot and answers instantly; everyone else is fetched live. |
 | **A trade-value number** | Projected wins times the market price of a win, discounted and cap-inflated, minus guaranteed salary. That surplus is expressed on a draft-pick scale, like "about the #7 pick". |
 | **The whole chain, shown** | Career WAR trajectory, the aging projection with a 10th to 90th percentile fan, a waterfall from production value to salary to surplus, league percentile bars, and a skill radar on the compare view. Every intermediate number the model computed is on screen. |
 | **Uncertainty** | A 5,000-run Monte Carlo over talent, aging, health, and cost per win produces a 10th to 90th percentile range, not just a point estimate. |
@@ -54,7 +54,7 @@ being wrong or being early is left to the reader.
 | **Compare** | Two to four players side by side, with value bars and a skill radar. |
 | **Trade calculator** | Put players on each side. Swish weighs what each team gives up against what it gets back and calls it. |
 | **Leaderboard** | League-wide production-value leaders for a season, from a single request. |
-| **Local first** | Every page fetched from Basketball-Reference is cached in SQLite. The second lookup is instant and works with the network off. |
+| **Local first** | The current season ships as a committed snapshot (`swish/data/season.json`), so a fresh clone or deploy runs with no network. Anything fetched live is cached in SQLite on top of that. |
 | **A CLI too** | `swish value`, `compare`, `trade`, and `leaderboard`, all with a `--json` flag. |
 
 ## Screenshots
@@ -77,14 +77,15 @@ swish trade --a "Zion Williamson" --b "Jaylen Brown"
 swish serve
 ```
 
-The first lookup of a player makes one or two requests to
-basketball-reference.com and takes a second or two. The server warms the
-league-wide context in a background thread on startup, and a token-bucket
-throttle lets a cold lookup fire its requests without pausing between them.
-After that, everything is served from a local cache
+This season's rotation (about 320 players, ranked by minutes) ships in
+`swish/data/season.json`, so those lookups are instant and need no network.
+Search a deep-bench or retired player and Swish fetches him from
+basketball-reference.com, which takes a second or two; a token-bucket throttle
+keeps the crawl polite. Anything fetched live is cached in SQLite
 (`~/Library/Application Support/swish/cache.db` on macOS,
-`$XDG_DATA_HOME/swish` on Linux) and works offline. Run `swish cache info` to
-see what's stored, or `swish cache clear` to empty it.
+`$XDG_DATA_HOME/swish` on Linux) so the second lookup is instant too. Run
+`swish cache info` to see what's stored, `swish data info` for the snapshot, or
+`swish data build` to rebuild it when the season moves on.
 
 ## How the number is built
 
@@ -110,14 +111,14 @@ write-up is in [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md), with the layout in
 ## Tech
 
 - Python 3.10+, FastAPI and Uvicorn, a Typer CLI, NumPy for the model
-- Scraper: httpx with BeautifulSoup and lxml, rate limited, backed by a SQLite response cache
+- Data: a committed season snapshot (`swish data build`), plus a live scraper for the long tail (httpx, BeautifulSoup and lxml, rate limited, SQLite response cache)
 - Frontend: vanilla ES modules, no build step, SVG charts written by hand in [`swish/web/charts.js`](swish/web/charts.js)
 - Tooling: ruff, mypy (strict on the model core), pytest with Hypothesis, GitHub Actions
 
 ## Testing
 
 ```bash
-pytest                 # 70 tests, around 12 seconds, fully offline
+pytest                 # 77 tests, around 14 seconds, fully offline
 pytest --cov=swish
 ruff check swish tests && ruff format --check swish tests
 mypy swish
@@ -141,8 +142,11 @@ and the percentiles stay ordered.
   at face value and flagged, rather than modelled.
 - **It needs recent NBA minutes.** A player with no recent NBA season gets a
   "not enough data" error.
-- **Basketball-Reference is the only source.** If the site is down and the page
-  isn't cached, the lookup fails.
+- **Basketball-Reference is the only source.** The committed snapshot covers
+  this season's rotation offline; for anyone else, if the site is down and the
+  page isn't cached, the lookup fails.
+- **The snapshot is a point in time.** Stats for the players in
+  `season.json` are frozen at the last `swish data build`; rerun it to refresh.
 
 ## Roadmap
 
